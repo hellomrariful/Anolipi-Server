@@ -28,6 +28,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         const userCollection = client.db('anolipiDB').collection("users")
+        const publisherCollection = client.db('anolipiDB').collection("publishers")
 
 
         // jwt related api
@@ -65,7 +66,6 @@ async function run() {
             next();
         }
 
-
         // user related api
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
             const result = await userCollection.find().toArray();
@@ -83,8 +83,7 @@ async function run() {
             res.send(result);
         });
 
-
-
+        //admin
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
 
@@ -101,8 +100,6 @@ async function run() {
             res.send({ admin });
         })
 
-
-
         // admin api
         app.patch('/users/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
@@ -113,6 +110,13 @@ async function run() {
                 }
             }
             const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result)
+        })
+
+        // publishers API
+        app.post('/publishers', async (req, res) => {
+            const publishers = req.body;
+            const result = await publisherCollection.insertOne(publishers)
             res.send(result)
         })
 

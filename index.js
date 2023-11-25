@@ -29,6 +29,7 @@ async function run() {
     try {
         const userCollection = client.db('anolipiDB').collection("users")
         const publisherCollection = client.db('anolipiDB').collection("publishers")
+        const newsCollection = client.db('anolipiDB').collection("newses")
 
 
         // jwt related api
@@ -117,6 +118,23 @@ async function run() {
         app.post('/publishers', async (req, res) => {
             const publishers = req.body;
             const result = await publisherCollection.insertOne(publishers)
+            res.send(result)
+        })
+
+        app.get('/publishers', async (req, res) => {
+            const result = await publisherCollection.find().toArray()
+            res.send(result)
+        })
+
+        // news API
+        app.post('/newses', async(req, res) =>{
+            const newses = req.body;
+            const result = await newsCollection.insertOne(newses)
+            res.send(result)
+        })
+
+        app.get('/newses', async(req, res) => {
+            const result = await newsCollection.find().toArray()
             res.send(result)
         })
 

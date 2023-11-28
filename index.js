@@ -30,6 +30,7 @@ async function run() {
         const userCollection = client.db('anolipiDB').collection("users")
         const publisherCollection = client.db('anolipiDB').collection("publishers")
         const newsCollection = client.db('anolipiDB').collection("newses")
+        const declineCollection = client.db('anolipiDB').collection("decline")
 
 
         // jwt related api
@@ -127,25 +128,139 @@ async function run() {
         })
 
         // news API
-        app.post('/newses', async(req, res) =>{
+        app.post('/newses', async (req, res) => {
             const newses = req.body;
             const result = await newsCollection.insertOne(newses)
             res.send(result)
         })
 
-        app.get('/newses', async(req, res) => {
+        app.get('/newses', async (req, res) => {
             const result = await newsCollection.find().toArray()
             res.send(result)
         })
 
-        app.delete("/newses/:id", async(req, res) =>{
+        app.get('/newses/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
+            const result = await newsCollection.findOne(query)
+            res.send(result)
+        })
+
+        app.delete("/newses/:id", async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
             const result = await newsCollection.deleteOne(query)
             res.send(result)
         })
 
+        app.patch('/newses/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    status: 'Approve',
+                }
+            };
+            const result = await newsCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        });
 
+        app.patch('/newses/decline/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    status: 'Decline',
+                    isPremium: 'No', // Assuming isPremium should be set to 'No' when declined
+                }
+            };
+            const result = await newsCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        });
+
+        app.patch('/newses/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    isPremium: 'Yes',
+                }
+            };
+            const result = await newsCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        });
+
+
+        // decline api
+
+        app.post('/decline', async (req, res) => {
+            const declineText = req.body;
+            const query = { id: declineText.id };
+            const existingText = await declineCollection.findOne(query);
+            if (existingText) {
+                return res.send({ message: 'Text already exists', insertedId: null });
+            }
+            const result = await declineCollection.insertOne(declineText);
+            res.send(result);
+        });
+
+        app.get('/decline', async (req, res) => {
+            const result = await declineCollection.find().toArray()
+            res.send(result)
+        })
+
+
+
+        // app.patch('/newses/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const filter = { _id: new ObjectId(id) };
+        //     const declineText = req.body
+
+        //     const news = {
+        //         $set: {
+        //             declineText: declineText,
+        //         }
+        //     };
+
+        //     try {
+        //         const result = await newsCollection.updateOne(filter, news);
+        //         if (result.matchedCount > 0) {
+        //             res.send(result);
+        //         } else {
+        //             res.status(404).send('Document not found.');
+        //         }
+        //     } catch (error) {
+        //         console.error(error);
+        //         res.status(500).send('Internal Server Error');
+        //     }
+        // });
+
+
+
+
+
+        app.put('/newses/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true };
+            const updatedNews = req.body;
+            const news = {
+                $set: {
+                    title: updatedNews.title,
+                    description: updatedNews.description,
+                    tags: updatedNews.tags,
+                    newsImage: updatedNews.newsImage,
+                    date: updatedNews.date,
+                    publisherName: updatedNews.publisherName,
+                    publisherPhoto: updatedNews.publisherPhoto,
+                    authorName: updatedNews.authorName,
+                    authorEmail: updatedNews.authorEmail,
+                    authorPhoto: updatedNews.authorPhoto
+                }
+            }
+            const result = await newsCollection.updateOne(filter, news, options);
+            res.send(result);
+        });
 
 
         // Send a ping to confirm a successful connection

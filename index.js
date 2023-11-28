@@ -30,7 +30,6 @@ async function run() {
         const userCollection = client.db('anolipiDB').collection("users")
         const publisherCollection = client.db('anolipiDB').collection("publishers")
         const newsCollection = client.db('anolipiDB').collection("newses")
-        const declineCollection = client.db('anolipiDB').collection("decline")
 
 
         // jwt related api
@@ -171,14 +170,14 @@ async function run() {
             const updatedDoc = {
                 $set: {
                     status: 'Decline',
-                    isPremium: 'No', // Assuming isPremium should be set to 'No' when declined
+                    isPremium: 'No',
                 }
             };
             const result = await newsCollection.updateOne(filter, updatedDoc);
             res.send(result);
         });
 
-        app.patch('/newses/:id', async (req, res) => {
+        app.patch('/newses/premium/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const updatedDoc = {
@@ -192,48 +191,33 @@ async function run() {
 
 
         // decline api
-
-        app.post('/decline', async (req, res) => {
-            const declineText = req.body;
-            const query = { id: declineText.id };
-            const existingText = await declineCollection.findOne(query);
-            if (existingText) {
-                return res.send({ message: 'Text already exists', insertedId: null });
+        app.patch('/newses/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const update = { $set: { declineText: req.body.textareaValue } };
+            try {
+                const result = await newsCollection.updateOne(filter, update);
+                console.log("line number", result);
+                res.send(result);
+            } catch (error) {
+                console.error('Error updating news item:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
             }
-            const result = await declineCollection.insertOne(declineText);
-            res.send(result);
         });
 
-        app.get('/decline', async (req, res) => {
-            const result = await declineCollection.find().toArray()
-            res.send(result)
-        })
-
-
-
-        // app.patch('/newses/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const filter = { _id: new ObjectId(id) };
-        //     const declineText = req.body
-
-        //     const news = {
-        //         $set: {
-        //             declineText: declineText,
-        //         }
-        //     };
-
-        //     try {
-        //         const result = await newsCollection.updateOne(filter, news);
-        //         if (result.matchedCount > 0) {
-        //             res.send(result);
-        //         } else {
-        //             res.status(404).send('Document not found.');
-        //         }
-        //     } catch (error) {
-        //         console.error(error);
-        //         res.status(500).send('Internal Server Error');
-        //     }
-        // });
+        app.patch('/newses/viewCount/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const update = { $inc: { viewCount: 1 } };
+            try {
+                const result = await newsCollection.updateOne(filter, update);
+                console.log("line number", result);
+                res.send(result);
+            } catch (error) {
+                console.error('Error updating news item:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
 
 
 
@@ -263,7 +247,7 @@ async function run() {
         });
 
 
-        // Send a ping to confirm a successful connection
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {

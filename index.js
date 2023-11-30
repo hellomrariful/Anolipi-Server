@@ -12,11 +12,8 @@ const port = process.env.PORT || 5000
 app.use(cors())
 app.use(express.json())
 
-
 // mongoDB
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.c6bvskv.mongodb.net/?retryWrites=true&w=majority`;
-
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -33,7 +30,6 @@ async function run() {
         const publisherCollection = client.db('anolipiDB').collection("publishers")
         const newsCollection = client.db('anolipiDB').collection("newses")
         const paymentCollection = client.db('anolipiDB').collection("payments")
-
 
         // jwt related api
         app.post('/jwt', async (req, res) => {
@@ -292,8 +288,29 @@ async function run() {
             res.send(result)
         })
 
+        app.patch('/users/:email', async (req, res) => {
+            const email = req.params.email
+            const filter = { email: email }
+            const updatedDoc = {
+                $set: {
+                    premiumTaken: "Yes"
+                }
+            }
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result)
+        })
 
-
+        app.patch('/users/null/:email', async (req, res) => {
+            const email = req.params.email
+            const filter = { email: email }
+            const updatedDoc = {
+                $set: {
+                    premiumTaken: "null"
+                }
+            }
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result)
+        })
 
         // payment API
         app.post('/create-payment-intent', async (req, res) => {
@@ -320,6 +337,22 @@ async function run() {
             }
             const result = await paymentCollection.find(query).toArray();
             res.send(result);
+        })
+
+        app.get('/users/premium/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+
+            if (email !== req.decoded.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            let premium = false;
+            if (user) {
+                premium = user?.premiumTaken === 'Yes';
+            }
+            res.send({ premium });
         })
 
 

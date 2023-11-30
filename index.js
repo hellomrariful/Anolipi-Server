@@ -32,6 +32,7 @@ async function run() {
         const userCollection = client.db('anolipiDB').collection("users")
         const publisherCollection = client.db('anolipiDB').collection("publishers")
         const newsCollection = client.db('anolipiDB').collection("newses")
+        const paymentCollection = client.db('anolipiDB').collection("payments")
 
 
         // jwt related api
@@ -140,16 +141,32 @@ async function run() {
             res.send(result)
         })
 
-        // app.get('/infinite', async (req, res) => {
-        //     const result = await newsCollection.find().toArray()
-        //    res.send({result, total:result.length})
-        // })
 
-        app.get('/infinite', async (req, res) => {
-            const result = await newsCollection.find().toArray();
-            res.send(result);
+        app.get("/articles", async (req, res) => {
+            try {
+                const filter = req.query;
+                console.log(filter);
+                const query = {
+                    title: { $regex: filter.search, $options: 'i' }
+                };
+                let imgLimit = parseInt(req.query.limit);
+                let imgOffset = parseInt(req.query.offset) || 0;
+
+                const total = (await newsCollection.find(query).toArray()).length;
+
+                if (imgOffset >= total) {
+                    return res.send({ result: [], total: 0 });
+                }
+
+                const result = await newsCollection.find(query).skip(imgOffset).limit(imgLimit).toArray();
+                res.send({
+                    result,
+                    total: total,
+                });
+            } catch (error) {
+                res.status(500).send({ error: error.message });
+            }
         });
-
 
         app.get('/newses/:id', async (req, res) => {
             const id = req.params.id
@@ -260,6 +277,23 @@ async function run() {
 
 
 
+        app.patch('/users/subscribe/:email', async (req, res) => {
+            const email = req.params.email
+            const filter = { email: email }
+            const { price, subscribeTime } = req.body;
+            const updatedDoc = {
+                $set: {
+                    email: email,
+                    price: price,
+                    subscribeTime: subscribeTime
+                }
+            }
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result)
+        })
+
+
+
 
         // payment API
         app.post('/create-payment-intent', async (req, res) => {
@@ -279,31 +313,22 @@ async function run() {
         });
 
 
-        // app.get('/payments/:email', verifyToken, async (req, res) => {
-        //     const query = { email: req.params.email }
-        //     if (req.params.email !== req.decoded.email) {
-        //         return res.status(403).send({ message: 'forbidden access' });
-        //     }
-        //     const result = await paymentCollection.find(query).toArray();
-        //     res.send(result);
-        // })
+        app.get('/payments/:email', verifyToken, async (req, res) => {
+            const query = { email: req.params.email }
+            if (req.params.email !== req.decoded.email) {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+            const result = await paymentCollection.find(query).toArray();
+            res.send(result);
+        })
 
-        // app.post('/payments', async (req, res) => {
-        //     const payment = req.body;
-        //     const paymentResult = await paymentCollection.insertOne(payment);
 
-        //     //  carefully delete each item from the cart
-        //     console.log('payment info', payment);
-        //     const query = {
-        //         _id: {
-        //             $in: payment.cartIds.map(id => new ObjectId(id))
-        //         }
-        //     };
 
-        //     const deleteResult = await cartCollection.deleteMany(query);
-
-        //     res.send({ paymentResult, deleteResult });
-        // })
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentCollection.insertOne(payment);
+            res.send(result)
+        })
 
 
         await client.db("admin").command({ ping: 1 });

@@ -67,7 +67,7 @@ async function run() {
         }
 
         // user related api
-        app.get('/users', async (req, res) => {
+        app.get('/users', verifyToken, async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result)
         })
@@ -120,7 +120,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/publishers', async (req, res) => {
+        app.get('/publishers', verifyToken, async (req, res) => {
             const result = await publisherCollection.find().toArray()
             res.send(result)
         })
@@ -290,6 +290,7 @@ async function run() {
 
         app.patch('/users/:email', async (req, res) => {
             const email = req.params.email
+
             const filter = { email: email }
             const updatedDoc = {
                 $set: {
@@ -301,16 +302,17 @@ async function run() {
         })
 
         app.patch('/users/null/:email', async (req, res) => {
-            const email = req.params.email
-            const filter = { email: email }
+            const email = req.params.email;
+            console.log(email);
+            const filter = { email: email };
             const updatedDoc = {
                 $set: {
-                    premiumTaken: "null"
+                    premiumTaken: null
                 }
-            }
+            };
             const result = await userCollection.updateOne(filter, updatedDoc);
-            res.send(result)
-        })
+            res.send(result);
+        });
 
         // payment API
         app.post('/create-payment-intent', async (req, res) => {
@@ -354,8 +356,6 @@ async function run() {
             }
             res.send({ premium });
         })
-
-
 
         app.post('/payments', async (req, res) => {
             const payment = req.body;

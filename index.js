@@ -67,7 +67,7 @@ async function run() {
         }
 
         // user related api
-        app.get('/users', verifyToken, async (req, res) => {
+        app.get('/users', async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result)
         })
@@ -120,7 +120,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/publishers', verifyToken, async (req, res) => {
+        app.get('/publishers', async (req, res) => {
             const result = await publisherCollection.find().toArray()
             res.send(result)
         })
@@ -136,7 +136,6 @@ async function run() {
             const result = await newsCollection.find().toArray()
             res.send(result)
         })
-
 
         app.get("/articles", async (req, res) => {
             try {
@@ -244,10 +243,6 @@ async function run() {
             }
         });
 
-
-
-
-
         app.put('/newses/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
@@ -270,8 +265,6 @@ async function run() {
             const result = await newsCollection.updateOne(filter, news, options);
             res.send(result);
         });
-
-
 
         app.patch('/users/subscribe/:email', async (req, res) => {
             const email = req.params.email
@@ -331,7 +324,6 @@ async function run() {
             })
         });
 
-
         app.get('/payments/:email', verifyToken, async (req, res) => {
             const query = { email: req.params.email }
             if (req.params.email !== req.decoded.email) {
@@ -367,15 +359,12 @@ async function run() {
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
-        // Ensures that the client will close when you finish/error
         // await client.close();
     }
 }
 run().catch(console.dir);
 
-
-
-// testing
+// developer testing
 app.get('/', (req, res) => {
     res.send('Server is running')
 })
